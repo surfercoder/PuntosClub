@@ -28,6 +28,24 @@ export default function AppLayout() {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       />
+      <Stack.Screen
+        name="explore"
+        options={{
+          title: 'Explorar',
+          headerStyle: { backgroundColor: '#7C3AED' },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+      <Stack.Screen
+        name="organization/[id]"
+        options={{
+          title: 'Organizacion',
+          headerStyle: { backgroundColor: '#7C3AED' },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
     </Stack>
   );
 }
