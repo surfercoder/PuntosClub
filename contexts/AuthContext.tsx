@@ -237,6 +237,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: 'https://puntos-club-admin.vercel.app/auth/email-confirmed',
+        },
       });
 
       if (authError) {

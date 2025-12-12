@@ -88,8 +88,6 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  const totalPoints = userOrganizations.reduce((sum, org) => sum + org.available_points, 0);
-
   return (
     <View style={styles.container}>
       {/* QR Code Modal */}
@@ -167,10 +165,6 @@ export default function HomeScreen() {
                     />
                   )}
                 </TouchableOpacity>
-              </View>
-              <View style={styles.totalPointsContainer}>
-                <Text style={styles.totalPointsLabel}>Total de Puntos</Text>
-                <Text style={styles.totalPointsValue}>{totalPoints.toLocaleString()}</Text>
               </View>
             </View>
 
@@ -354,22 +348,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
     marginLeft: 16,
-  },
-  totalPointsContainer: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  totalPointsLabel: {
-    fontSize: 14,
-    color: '#E9D5FF',
-    marginBottom: 4,
-  },
-  totalPointsValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   sectionHeader: {
     marginBottom: 12,
