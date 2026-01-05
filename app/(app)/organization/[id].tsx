@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../utils/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import type { Product } from '../../../types';
 
 type ActiveOffer = {
   id: number;
@@ -32,18 +34,13 @@ export default function OrganizationDetailScreen() {
   const { userOrganizations, organizationsLoading, beneficiary, refreshOrganizations } = useAuth();
   const [activeOffers, setActiveOffers] = useState<ActiveOffer[]>([]);
   const [offersLoading, setOffersLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const pointsChannelRef = useRef<RealtimeChannel | null>(null);
 
   const membership = userOrganizations.find(
     (org) => org.organization_id.toString() === id
   );
-
-  // Fetch active offers for this organization
-  useEffect(() => {
-    if (id) {
-      fetchActiveOffers();
-    }
-  }, [id]);
 
   // Set up real-time subscription for points updates
   useEffect(() => {
@@ -59,14 +56,13 @@ export default function OrganizationDetailScreen() {
             filter: `beneficiary_id=eq.${beneficiary.id}`,
           },
           (payload) => {
-            console.log('Points updated:', payload);
             // Refresh organizations to get updated points
             refreshOrganizations();
           }
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Subscribed to points updates for org', id);
+            // Subscribed to points updates
           }
         });
 
@@ -81,7 +77,7 @@ export default function OrganizationDetailScreen() {
     }
   }, [beneficiary?.id, id, refreshOrganizations]);
 
-  const fetchActiveOffers = async () => {
+  const fetchActiveOffers = useCallback(async () => {
     setOffersLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_active_offers', {
@@ -93,12 +89,47 @@ export default function OrganizationDetailScreen() {
       if (!error && data) {
         setActiveOffers(data);
       }
-    } catch (error) {
-      console.error('Error fetching active offers:', error);
+    } catch {
     } finally {
       setOffersLoading(false);
     }
-  };
+  }, [id]);
+
+  const fetchProducts = useCallback(async () => {
+    setProductsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('product')
+        .select(`
+          *,
+          category:category_id(id, name),
+          stock:stock(
+            id,
+            branch_id,
+            quantity,
+            branch:branch(id, name)
+          )
+        `)
+        .eq('organization_id', parseInt(id))
+        .eq('active', true)
+        .order('required_points', { ascending: true });
+
+      if (!error && data) {
+        setProducts(data);
+      }
+    } catch {
+    } finally {
+      setProductsLoading(false);
+    }
+  }, [id]);
+
+  // Fetch active offers for this organization
+  useEffect(() => {
+    if (id) {
+      fetchActiveOffers();
+      fetchProducts();
+    }
+  }, [id, fetchActiveOffers, fetchProducts]);
 
   const formatTimeRange = (start: string | null, end: string | null) => {
     if (!start && !end) return 'Todo el dia';
@@ -285,6 +316,98 @@ export default function OrganizationDetailScreen() {
             <Text style={styles.offersLoadingText}>Cargando promociones...</Text>
           </View>
         )}
+
+        {/* Products for Redemption */}
+        <View style={styles.productsCard}>
+          <Text style={styles.productsTitle}>Productos disponibles para canje</Text>
+          <Text style={styles.productsSubtitle}>
+            Canjea tus puntos por estos productos
+          </Text>
+          
+          {productsLoading ? (
+            <View style={styles.productsLoadingContainer}>
+              <ActivityIndicator size="small" color="#7C3AED" />
+              <Text style={styles.productsLoadingText}>Cargando productos...</Text>
+            </View>
+          ) : products.length === 0 ? (
+            <View style={styles.emptyProductsContainer}>
+              <Text style={styles.emptyProductsText}>🎁</Text>
+              <Text style={styles.emptyProductsTitle}>No hay productos disponibles</Text>
+              <Text style={styles.emptyProductsSubtitle}>
+                Pronto habra productos para canjear con tus puntos
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.productsList}>
+              {products.map((product) => {
+                const totalStock = product.stock?.reduce(
+                  (sum, s) => sum + (s.quantity || 0),
+                  0
+                ) || 0;
+                const canAfford = membership.available_points >= product.required_points;
+                const inStock = totalStock > 0;
+
+                return (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={[
+                      styles.productItem,
+                      !canAfford && styles.productItemDisabled,
+                    ]}
+                    disabled={!canAfford || !inStock}
+                  >
+                    <View style={styles.productHeader}>
+                      <View style={styles.productInfo}>
+                        <Text style={styles.productName}>{product.name}</Text>
+                        {product.category && (
+                          <Text style={styles.productCategory}>
+                            {product.category.name}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.productPoints}>
+                        <Text style={styles.productPointsValue}>
+                          {product.required_points.toLocaleString()}
+                        </Text>
+                        <Text style={styles.productPointsLabel}>pts</Text>
+                      </View>
+                    </View>
+                    
+                    {product.description && (
+                      <Text style={styles.productDescription} numberOfLines={2}>
+                        {product.description}
+                      </Text>
+                    )}
+                    
+                    <View style={styles.productFooter}>
+                      <View
+                        style={[
+                          styles.stockBadge,
+                          inStock ? styles.stockBadgeInStock : styles.stockBadgeOutOfStock,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.stockBadgeText,
+                            inStock ? styles.stockBadgeTextInStock : styles.stockBadgeTextOutOfStock,
+                          ]}
+                        >
+                          {inStock ? `${totalStock} disponibles` : 'Sin stock'}
+                        </Text>
+                      </View>
+                      
+                      {!canAfford && inStock && (
+                        <Text style={styles.insufficientPointsText}>
+                          Te faltan {(product.required_points - membership.available_points).toLocaleString()} pts
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
 
         {/* How to earn points */}
         <View style={styles.helpCard}>
@@ -554,5 +677,145 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 8,
+  },
+  // Products styles
+  productsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  productsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  productsSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  productsLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  productsLoadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  emptyProductsContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyProductsText: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyProductsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  emptyProductsSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  productsList: {
+    gap: 12,
+  },
+  productItem: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  productItemDisabled: {
+    opacity: 0.6,
+  },
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  productCategory: {
+    fontSize: 12,
+    color: '#7C3AED',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  productPoints: {
+    alignItems: 'flex-end',
+  },
+  productPointsValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#7C3AED',
+  },
+  productPointsLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  productDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  productFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stockBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  stockBadgeInStock: {
+    backgroundColor: '#D1FAE5',
+  },
+  stockBadgeOutOfStock: {
+    backgroundColor: '#FEE2E2',
+  },
+  stockBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stockBadgeTextInStock: {
+    color: '#059669',
+  },
+  stockBadgeTextOutOfStock: {
+    color: '#DC2626',
+  },
+  insufficientPointsText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '500',
   },
 });

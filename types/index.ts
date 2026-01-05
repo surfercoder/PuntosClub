@@ -29,3 +29,30 @@ export type Beneficiary = {
   role_id: string | null;
   auth_user_id: string | null;
 };
+
+export type Category = {
+  id: string;
+  name: string;
+};
+
+export type Stock = {
+  id: string;
+  branch_id: string;
+  quantity: number;
+  branch?: {
+    id: string;
+    name: string;
+  };
+};
+
+export type Product = {
+  id: string;
+  category_id: string;
+  name: string;
+  description?: string | null;
+  required_points: number;
+  active: boolean;
+  creation_date: string;
+  category?: Category;
+  stock?: Stock[];
+};

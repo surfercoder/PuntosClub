@@ -48,13 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching user organizations:', error);
         return;
       }
 
       setUserOrganizations(data || []);
     } catch (error) {
-      console.error('Error in fetchUserOrganizations:', error);
     } finally {
       setOrganizationsLoading(false);
     }
@@ -68,13 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('name');
 
       if (error) {
-        console.error('Error fetching all organizations:', error);
         return;
       }
 
       setAllOrganizations(data || []);
     } catch (error) {
-      console.error('Error in fetchAllOrganizations:', error);
     }
   }, []);
 
@@ -135,15 +131,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             table: 'beneficiary_organization',
             filter: `beneficiary_id=eq.${beneficiary.id}`,
           },
-          (payload) => {
-            console.log('Organization membership changed:', payload);
-            // Refresh organizations when any change happens
-            fetchUserOrganizations(beneficiary.id);
+          async (payload) => {
+            
+            if (payload.eventType === 'UPDATE' && payload.new) {
+              // For updates, optimistically update the state
+              setUserOrganizations((prev) => {
+                const updated = prev.map((org) => {
+                  if (org.id === payload.new.id) {
+                    return {
+                      ...org,
+                      available_points: payload.new.available_points,
+                      total_points_earned: payload.new.total_points_earned,
+                      total_points_redeemed: payload.new.total_points_redeemed,
+                      updated_at: payload.new.updated_at,
+                    };
+                  }
+                  return org;
+                });
+                return updated;
+              });
+            } else {
+              // For INSERT and DELETE, refetch all organizations
+              await fetchUserOrganizations(beneficiary.id);
+            }
           }
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Subscribed to organization changes');
+            // Subscribed to organization changes
+          } else if (status === 'CHANNEL_ERROR') {
+            // Error subscribing to organization changes
+          } else if (status === 'TIMED_OUT') {
+            // Subscription timed out
           }
         });
 
@@ -168,7 +187,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error fetching beneficiary:', error);
         // User is authenticated but not a beneficiary - sign them out
         await supabase.auth.signOut();
         setBeneficiary(null);
@@ -176,7 +194,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Verify user has final_user role
         const roleName = (data.user_role as any)?.name;
         if (roleName !== 'final_user') {
-          console.error('User is not a final_user');
           await supabase.auth.signOut();
           setBeneficiary(null);
         } else {
@@ -184,7 +201,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Error in fetchBeneficiary:', error);
     } finally {
       setLoading(false);
     }
@@ -233,12 +249,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userData: { first_name: string; last_name: string; phone?: string; document_id?: string }
   ): Promise<{ error: Error | null }> => {
     try {
-      // First, create the auth user
+      // Create the auth user with metadata - the database trigger will create the beneficiary record
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: 'https://puntos-club-admin.vercel.app/auth/email-confirmed',
+          emailRedirectTo: 'puntosclub://auth/email-confirmed',
+          data: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            phone: userData.phone || null,
+            document_id: userData.document_id || null,
+          },
         },
       });
 
@@ -250,39 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: new Error('Error al crear la cuenta') };
       }
 
-      // Get the final_user role ID
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_role')
-        .select('id')
-        .eq('name', 'final_user')
-        .single();
-
-      if (roleError || !roleData) {
-        // Cleanup: delete the auth user if we can't get the role
-        await supabase.auth.signOut();
-        return { error: new Error('Error al obtener el rol de usuario') };
-      }
-
-      // Create the beneficiary record
-      const { error: beneficiaryError } = await supabase
-        .from('beneficiary')
-        .insert({
-          email,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          phone: userData.phone || null,
-          document_id: userData.document_id || null,
-          available_points: 0,
-          role_id: roleData.id,
-          auth_user_id: authData.user.id,
-        });
-
-      if (beneficiaryError) {
-        // Cleanup: sign out if beneficiary creation fails
-        await supabase.auth.signOut();
-        return { error: new Error('Error al crear el perfil de usuario: ' + beneficiaryError.message) };
-      }
-
+      // The beneficiary record is automatically created by the database trigger
       return { error: null };
     } catch (error) {
       return { error: error as Error };
