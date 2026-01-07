@@ -7,7 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../utils/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -86,10 +87,17 @@ export default function OrganizationDetailScreen() {
         p_check_time: new Date().toISOString(),
       });
 
-      if (!error && data) {
+      if (error) {
+        console.error('Error fetching active offers:', error);
+        setActiveOffers([]);
+      } else if (data) {
         setActiveOffers(data);
+      } else {
+        setActiveOffers([]);
       }
-    } catch {
+    } catch (err) {
+      console.error('Exception fetching active offers:', err);
+      setActiveOffers([]);
     } finally {
       setOffersLoading(false);
     }
@@ -114,10 +122,17 @@ export default function OrganizationDetailScreen() {
         .eq('active', true)
         .order('required_points', { ascending: true });
 
-      if (!error && data) {
+      if (error) {
+        console.error('Error fetching products:', error);
+        setProducts([]);
+      } else if (data) {
         setProducts(data);
+      } else {
+        setProducts([]);
       }
-    } catch {
+    } catch (err) {
+      console.error('Exception fetching products:', err);
+      setProducts([]);
     } finally {
       setProductsLoading(false);
     }
@@ -206,7 +221,16 @@ export default function OrganizationDetailScreen() {
 
         {/* Stats Card */}
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Estadisticas</Text>
+          <View style={styles.statsHeader}>
+            <Text style={styles.statsTitle}>Estadisticas</Text>
+            <TouchableOpacity
+              style={styles.historyButton}
+              onPress={() => router.push(`/(app)/organization/${id}/history`)}
+            >
+              <Ionicons name="time-outline" size={18} color="#7C3AED" />
+              <Text style={styles.historyButtonText}>Historial</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
@@ -279,7 +303,12 @@ export default function OrganizationDetailScreen() {
         )}
 
         {/* Active Campaigns */}
-        {activeOffers.length > 0 && (
+        {offersLoading ? (
+          <View style={styles.offersLoadingCard}>
+            <ActivityIndicator size="small" color="#7C3AED" />
+            <Text style={styles.offersLoadingText}>Cargando promociones...</Text>
+          </View>
+        ) : activeOffers.length > 0 ? (
           <View style={styles.offersCard}>
             <Text style={styles.offersTitle}>Promociones Activas</Text>
             {activeOffers.map((offer) => (
@@ -308,14 +337,7 @@ export default function OrganizationDetailScreen() {
               </View>
             ))}
           </View>
-        )}
-
-        {offersLoading && (
-          <View style={styles.offersLoadingCard}>
-            <ActivityIndicator size="small" color="#7C3AED" />
-            <Text style={styles.offersLoadingText}>Cargando promociones...</Text>
-          </View>
-        )}
+        ) : null}
 
         {/* Products for Redemption */}
         <View style={styles.productsCard}>
@@ -487,11 +509,30 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   statsTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 16,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  historyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C3AED',
   },
   statsRow: {
     flexDirection: 'row',

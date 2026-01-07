@@ -56,3 +56,15 @@ export type Product = {
   category?: Category;
   stock?: Stock[];
 };
+
+export type Redemption = {
+  id: string;
+  beneficiary_id: string;
+  product_id: string | null;
+  organization_id: string;
+  points_redeemed: number;
+  status: string;
+  redeemed_by: string | null;
+  redeemed_at: string;
+  product?: Product;
+};
