@@ -27,35 +27,6 @@ export default function RedemptionHistoryScreen() {
     if (!beneficiary?.id || !id) return;
 
     try {
-      console.log('Fetching redemptions for beneficiary:', beneficiary.id, 'organization:', id);
-      console.log('Beneficiary ID type:', typeof beneficiary.id);
-      console.log('Beneficiary object:', beneficiary);
-      
-      // Check all redemptions in the database with different ID types
-      const { data: allRedemptions } = await supabase
-        .from('redemption')
-        .select('*')
-        .order('redemption_date', { ascending: false })
-        .limit(10);
-      
-      console.log('All recent redemptions in DB:', allRedemptions);
-      
-      // Try with string ID
-      const { data: stringIdData } = await supabase
-        .from('redemption')
-        .select('*')
-        .eq('beneficiary_id', beneficiary.id.toString());
-      
-      console.log('Redemptions with string ID:', stringIdData);
-      
-      // Try with number ID
-      const { data: numberIdData } = await supabase
-        .from('redemption')
-        .select('*')
-        .eq('beneficiary_id', beneficiary.id);
-      
-      console.log('Redemptions with number ID:', numberIdData);
-      
       const { data, error } = await supabase
         .from('redemption')
         .select(`
@@ -77,14 +48,15 @@ export default function RedemptionHistoryScreen() {
         .eq('beneficiary_id', beneficiary.id)
         .order('redemption_date', { ascending: false });
 
-      console.log('Query result:', { data, error, dataLength: data?.length });
-
       if (error) {
         console.error('Error fetching redemptions:', error);
         setRedemptions([]);
       } else if (data) {
-        console.log('Raw data:', JSON.stringify(data, null, 2));
-        const mappedData = data.map((r: any) => ({
+        const filteredData = data.filter((r: any) => 
+          r.product && r.product.organization_id && r.product.organization_id.toString() === id
+        );
+        
+        const mappedData = filteredData.map((r: any) => ({
           id: r.id,
           beneficiary_id: r.beneficiary_id,
           product_id: r.product_id,
@@ -104,10 +76,8 @@ export default function RedemptionHistoryScreen() {
             category: r.product.category?.[0] || undefined,
           } : undefined,
         }));
-        console.log('Mapped data:', mappedData.length, 'redemptions');
         setRedemptions(mappedData);
       } else {
-        console.log('No data returned');
         setRedemptions([]);
       }
     } catch (err) {
@@ -130,7 +100,7 @@ export default function RedemptionHistoryScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleString('es-AR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

@@ -84,19 +84,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [beneficiary?.id, fetchUserOrganizations, fetchAllOrganizations]);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchBeneficiary(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    let mounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Listen for auth changes
+    const initializeAuth = async () => {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Auth initialization timeout'));
+          }, 10000);
+        });
+
+        const sessionPromise = supabase.auth.getSession();
+
+        const { data: { session } } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]);
+
+        clearTimeout(timeoutId);
+
+        if (!mounted) return;
+
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchBeneficiary(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setBeneficiary(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -108,7 +141,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Ref to store the realtime channel
@@ -180,20 +217,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchBeneficiary = async (authUserId: string) => {
     try {
-      const { data, error } = await supabase
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('fetchBeneficiary timeout'));
+        }, 8000);
+      });
+
+      const queryPromise = supabase
         .from('beneficiary')
         .select('*, user_role:role_id(name)')
         .eq('auth_user_id', authUserId)
         .single();
 
+      const { data, error } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]);
+
       if (error) {
-        // User is authenticated but not a beneficiary - sign them out
+        console.error('fetchBeneficiary error:', error);
         await supabase.auth.signOut();
         setBeneficiary(null);
       } else if (data) {
-        // Verify user has final_user role
         const roleName = (data.user_role as any)?.name;
         if (roleName !== 'final_user') {
+          console.warn('User does not have final_user role');
           await supabase.auth.signOut();
           setBeneficiary(null);
         } else {
@@ -201,6 +249,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
+      console.error('fetchBeneficiary exception:', error);
+      setBeneficiary(null);
     } finally {
       setLoading(false);
     }
