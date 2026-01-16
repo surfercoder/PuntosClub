@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,10 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
+  Image,
+  FlatList,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +41,8 @@ export default function OrganizationDetailScreen() {
   const [offersLoading, setOffersLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [unfollowLoading, setUnfollowLoading] = useState(false);
+  const [activeImageIndices, setActiveImageIndices] = useState<Record<string, number>>({});
   const pointsChannelRef = useRef<RealtimeChannel | null>(null);
 
   const membership = userOrganizations.find(
@@ -155,6 +161,59 @@ export default function OrganizationDetailScreen() {
   const formatDays = (days: number[] | null) => {
     if (!days || days.length === 0 || days.length === 7) return 'Todos los dias';
     return days.map(d => DAY_NAMES[d]).join(', ');
+  };
+
+  const handleUnfollow = async () => {
+    if (!membership) return;
+    
+    Alert.alert(
+      'Dejar de seguir organizacion',
+      `¿Estas seguro que deseas dejar de seguir a ${organization?.name}? Tu historial de puntos y canjes se mantendra guardado y podras volver a seguir esta organizacion cuando quieras.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Dejar de seguir',
+          style: 'destructive',
+          onPress: async () => {
+            setUnfollowLoading(true);
+            try {
+              const { error } = await supabase
+                .from('beneficiary_organization')
+                .update({ is_active: false })
+                .eq('id', membership.id);
+
+              if (error) {
+                Alert.alert(
+                  'Error',
+                  'No se pudo dejar de seguir la organizacion. Por favor intenta nuevamente.'
+                );
+                console.error('Error unfollowing organization:', error);
+              } else {
+                await refreshOrganizations();
+                Alert.alert(
+                  'Exito',
+                  `Has dejado de seguir a ${organization?.name}. Puedes volver a seguir esta organizacion desde la pantalla de explorar.`,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => router.back(),
+                    },
+                  ]
+                );
+              }
+            } catch (err) {
+              console.error('Exception unfollowing organization:', err);
+              Alert.alert(
+                'Error',
+                'Ocurrio un error inesperado. Por favor intenta nuevamente.'
+              );
+            } finally {
+              setUnfollowLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (organizationsLoading) {
@@ -370,14 +429,55 @@ export default function OrganizationDetailScreen() {
                 const inStock = totalStock > 0;
 
                 return (
-                  <TouchableOpacity
+                  <View
                     key={product.id}
                     style={[
                       styles.productItem,
                       !canAfford && styles.productItemDisabled,
                     ]}
-                    disabled={!canAfford || !inStock}
                   >
+                    {product.image_urls && product.image_urls.length > 0 && (
+                      <View style={styles.imageCarouselContainer}>
+                        <FlatList
+                          data={product.image_urls}
+                          horizontal
+                          pagingEnabled
+                          showsHorizontalScrollIndicator={false}
+                          onScroll={(event) => {
+                            const slideIndex = Math.round(
+                              event.nativeEvent.contentOffset.x /
+                              (Dimensions.get('window').width - 64)
+                            );
+                            setActiveImageIndices(prev => ({
+                              ...prev,
+                              [product.id]: slideIndex
+                            }));
+                          }}
+                          scrollEventThrottle={16}
+                          renderItem={({ item }) => (
+                            <Image
+                              source={{ uri: item }}
+                              style={styles.productImage}
+                              resizeMode="cover"
+                            />
+                          )}
+                          keyExtractor={(item, index) => `${product.id}-image-${index}`}
+                        />
+                        {product.image_urls.length > 1 && (
+                          <View style={styles.paginationDots}>
+                            {product.image_urls.map((_, index) => (
+                              <View
+                                key={index}
+                                style={[
+                                  styles.dot,
+                                  (activeImageIndices[product.id] || 0) === index && styles.activeDot,
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    )}
                     <View style={styles.productHeader}>
                       <View style={styles.productInfo}>
                         <Text style={styles.productName}>{product.name}</Text>
@@ -424,7 +524,7 @@ export default function OrganizationDetailScreen() {
                         </Text>
                       )}
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
@@ -439,6 +539,22 @@ export default function OrganizationDetailScreen() {
             DNI al cajero. Los puntos se acreditaran automaticamente a tu cuenta.
           </Text>
         </View>
+
+        {/* Unfollow Button */}
+        <TouchableOpacity
+          style={[styles.unfollowButton, unfollowLoading && styles.unfollowButtonDisabled]}
+          onPress={handleUnfollow}
+          disabled={unfollowLoading}
+        >
+          {unfollowLoading ? (
+            <ActivityIndicator size="small" color="#DC2626" />
+          ) : (
+            <>
+              <Ionicons name="remove-circle-outline" size={20} color="#DC2626" />
+              <Text style={styles.unfollowButtonText}>Dejar de seguir organizacion</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </>
   );
@@ -785,6 +901,38 @@ const styles = StyleSheet.create({
   productItemDisabled: {
     opacity: 0.6,
   },
+  imageCarouselContainer: {
+    marginBottom: 12,
+    position: 'relative',
+  },
+  productImage: {
+    width: Dimensions.get('window').width - 64,
+    height: 180,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  paginationDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -858,5 +1006,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#DC2626',
     fontWeight: '500',
+  },
+  unfollowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 32,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  unfollowButtonDisabled: {
+    opacity: 0.6,
+  },
+  unfollowButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#DC2626',
   },
 });

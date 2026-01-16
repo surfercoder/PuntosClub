@@ -211,8 +211,15 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             {/* Account Info */}
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Tu cuenta</Text>
+            <TouchableOpacity 
+              style={styles.infoCard}
+              onPress={() => router.push('/(app)/profile')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.infoHeader}>
+                <Text style={styles.infoTitle}>Tu cuenta</Text>
+                <Text style={styles.editLink}>Editar →</Text>
+              </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Nombre</Text>
                 <Text style={styles.infoValue}>
@@ -235,7 +242,7 @@ export default function HomeScreen() {
                   <Text style={styles.infoValue}>{beneficiary.document_id}</Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
 
             {/* Sign Out Button */}
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -470,11 +477,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   infoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 16,
+  },
+  editLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C3AED',
   },
   infoRow: {
     flexDirection: 'row',

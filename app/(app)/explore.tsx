@@ -10,7 +10,8 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Organization } from '../../types';
 
@@ -117,6 +118,14 @@ export default function ExploreScreen() {
           headerStyle: { backgroundColor: '#7C3AED' },
           headerTintColor: '#FFFFFF',
           headerTitleStyle: { fontWeight: 'bold' },
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/scan-organization')}
+              style={styles.scanButton}
+            >
+              <Ionicons name="qr-code-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          ),
         }}
       />
       <View style={styles.container}>
@@ -130,6 +139,24 @@ export default function ExploreScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
+
+        {/* QR Scanner Info Banner */}
+        <TouchableOpacity
+          style={styles.qrBanner}
+          onPress={() => router.push('/(app)/scan-organization')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.qrBannerIcon}>
+            <Ionicons name="qr-code" size={32} color="#7C3AED" />
+          </View>
+          <View style={styles.qrBannerText}>
+            <Text style={styles.qrBannerTitle}>Escanear QR</Text>
+            <Text style={styles.qrBannerSubtitle}>
+              Escanea el QR de una organizacion para unirte rapidamente
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#7C3AED" />
+        </TouchableOpacity>
 
         <FlatList
           data={filteredOrganizations}
@@ -179,11 +206,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  scanButton: {
+    marginRight: 12,
+    padding: 4,
+  },
   searchContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
     backgroundColor: '#F9FAFB',
+  },
+  qrBanner: {
+    backgroundColor: '#F3E8FF',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  qrBannerIcon: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 8,
+    marginRight: 12,
+  },
+  qrBannerText: {
+    flex: 1,
+  },
+  qrBannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginBottom: 2,
+  },
+  qrBannerSubtitle: {
+    fontSize: 12,
+    color: '#6B21A8',
+    lineHeight: 16,
   },
   searchInput: {
     backgroundColor: '#FFFFFF',

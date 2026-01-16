@@ -28,6 +28,20 @@ export type Beneficiary = {
   available_points: number;
   role_id: string | null;
   auth_user_id: string | null;
+  address_id: string | null;
+};
+
+export type Address = {
+  id: string;
+  street: string;
+  number: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country?: string | null;
+  place_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type Category = {
@@ -53,6 +67,7 @@ export type Product = {
   required_points: number;
   active: boolean;
   creation_date: string;
+  image_urls?: string[] | null;
   category?: Category;
   stock?: Stock[];
 };

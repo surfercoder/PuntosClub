@@ -16,6 +16,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   joinOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
   refreshOrganizations: () => Promise<void>;
+  refreshBeneficiary: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -382,6 +383,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshBeneficiary = useCallback(async () => {
+    if (user?.id) {
+      await fetchBeneficiary(user.id);
+    }
+  }, [user?.id]);
+
   const signOut = async () => {
     // Clean up realtime subscription
     if (organizationsChannelRef.current) {
@@ -406,7 +413,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       joinOrganization,
-      refreshOrganizations
+      refreshOrganizations,
+      refreshBeneficiary
     }}>
       {children}
     </AuthContext.Provider>

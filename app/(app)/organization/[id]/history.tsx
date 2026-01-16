@@ -6,6 +6,7 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -42,6 +43,7 @@ export default function RedemptionHistoryScreen() {
             description,
             required_points,
             organization_id,
+            image_urls,
             category:category_id(id, name)
           )
         `)
@@ -56,26 +58,33 @@ export default function RedemptionHistoryScreen() {
           r.product && r.product.organization_id && r.product.organization_id.toString() === id
         );
         
-        const mappedData = filteredData.map((r: any) => ({
-          id: r.id,
-          beneficiary_id: r.beneficiary_id,
-          product_id: r.product_id,
-          organization_id: id,
-          points_redeemed: r.points_used,
-          status: 'completed',
-          redeemed_by: null,
-          redeemed_at: r.redemption_date,
-          product: r.product ? {
-            id: r.product.id,
-            category_id: r.product.category?.[0]?.id || '',
-            name: r.product.name,
-            description: r.product.description,
-            required_points: r.product.required_points,
-            active: true,
-            creation_date: '',
-            category: r.product.category?.[0] || undefined,
-          } : undefined,
-        }));
+        const mappedData = filteredData.map((r: any) => {
+          console.log('Raw redemption_date from DB:', r.redemption_date);
+          console.log('Date object:', new Date(r.redemption_date));
+          console.log('ISO string:', new Date(r.redemption_date).toISOString());
+          
+          return {
+            id: r.id,
+            beneficiary_id: r.beneficiary_id,
+            product_id: r.product_id,
+            organization_id: id,
+            points_redeemed: r.points_used,
+            status: 'completed',
+            redeemed_by: null,
+            redeemed_at: r.redemption_date,
+            product: r.product ? {
+              id: r.product.id,
+              category_id: r.product.category?.[0]?.id || '',
+              name: r.product.name,
+              description: r.product.description,
+              required_points: r.product.required_points,
+              active: true,
+              creation_date: '',
+              image_urls: r.product.image_urls,
+              category: r.product.category?.[0] || undefined,
+            } : undefined,
+          };
+        });
         setRedemptions(mappedData);
       } else {
         setRedemptions([]);
@@ -99,19 +108,45 @@ export default function RedemptionHistoryScreen() {
   }, [fetchRedemptions]);
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    if (!dateString) return 'Fecha no disponible';
+    
+    // Check if it's a date-only string (YYYY-MM-DD) without time
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+    
+    let date: Date;
+    if (isDateOnly) {
+      // Parse as local date to avoid timezone conversion issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      date = new Date(year, month - 1, day, 12, 0, 0); // Use noon to avoid edge cases
+    } else {
+      // Parse as ISO timestamp and convert to local timezone
+      date = new Date(dateString);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    
     return date.toLocaleString('es-AR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'America/Argentina/Buenos_Aires',
     });
   };
 
   const renderRedemptionItem = ({ item }: { item: Redemption }) => (
     <View style={styles.redemptionCard}>
       <View style={styles.redemptionHeader}>
+        {item.product?.image_urls && item.product.image_urls.length > 0 && (
+          <Image
+            source={{ uri: item.product.image_urls[0] }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+        )}
         <View style={styles.productInfo}>
           <Text style={styles.productName}>
             {item.product?.name || 'Producto eliminado'}
@@ -279,6 +314,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
   },
   productInfo: {
     flex: 1,
