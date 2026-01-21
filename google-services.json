@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "203805232717",
+    "project_id": "puntosclub-a55db",
+    "storage_bucket": "puntosclub-a55db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203805232717:android:9c37bfab8fb61c03141604",
+        "android_client_info": {
+          "package_name": "com.agustincassani.PuntosClub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTJbmhceGqUE4HSHDVHNl6WpBAhW9K76s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

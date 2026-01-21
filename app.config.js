@@ -15,6 +15,7 @@ module.exports = {
       bundleIdentifier: "com.agustincassani.PuntosClub"
     },
     android: {
+      package: "com.agustincassani.PuntosClub",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -22,7 +23,8 @@ module.exports = {
         monochromeImage: "./assets/images/android-icon-monochrome.png"
       },
       edgeToEdgeEnabled: true,
-      predictiveBackGestureEnabled: false
+      predictiveBackGestureEnabled: false,
+      googleServicesFile: "./google-services.json"
     },
     web: {
       output: "static",
@@ -41,6 +43,12 @@ module.exports = {
             backgroundColor: "#000000"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          color: "#ffffff"
+        }
       ]
     ],
     experiments: {
@@ -48,7 +56,10 @@ module.exports = {
       reactCompiler: true
     },
     extra: {
-      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+      eas: {
+        projectId: "d6083ee8-91db-4393-ab38-0fe2f2dce1d5"
+      }
     }
   }
 };
