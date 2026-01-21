@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { Session, User, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabase';
 import type { Beneficiary, BeneficiaryOrganization, Organization } from '../types';
+import { setupPushNotifications } from '../utils/pushNotifications';
 
 type AuthContextType = {
   session: Session | null;
@@ -247,6 +248,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setBeneficiary(null);
         } else {
           setBeneficiary(data);
+          setupPushNotifications().catch(error => {
+            console.error('Failed to setup push notifications:', error);
+          });
         }
       }
     } catch (error) {

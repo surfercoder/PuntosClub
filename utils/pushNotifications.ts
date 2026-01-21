@@ -99,7 +99,7 @@ export async function savePushTokenToBackend(expoPushToken: string) {
       return false;
     }
 
-    console.log('Push token saved successfully');
+    console.log('Push token saved successfully:', data);
     return true;
   } catch (error) {
     console.error('Error saving push token:', error);
