@@ -24,7 +24,8 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      googleServicesFile: "./google-services.json"
+      googleServicesFile: "./google-services.json",
+      softwareKeyboardLayoutMode: "pan"
     },
     web: {
       output: "static",

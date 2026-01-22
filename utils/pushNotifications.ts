@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -77,7 +79,20 @@ export async function savePushTokenToBackend(expoPushToken: string) {
     const deviceId = Device.modelName || Device.deviceName || 'unknown';
     const platform = Platform.OS;
 
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || process.env.EXPO_PUBLIC_SUPABASE_URL?.replace('/rest/v1', '');
+    // Get API URL - must be explicitly set in environment variables
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+    
+    if (!apiUrl) {
+      console.error('EXPO_PUBLIC_API_URL is not configured. Push tokens cannot be saved.');
+      console.log('Please set EXPO_PUBLIC_API_URL in your .env file to point to your admin app (e.g., http://localhost:3001 or your production URL)');
+      return false;
+    }
+
+    // Validate URL format
+    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+      console.error('Invalid API URL format:', apiUrl);
+      return false;
+    }
     
     const response = await fetch(`${apiUrl}/api/push-tokens`, {
       method: 'POST',
