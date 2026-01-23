@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  Image,
 } from 'react-native';
 import QRCode from 'react-qr-code';
 import { useAuth } from '../../contexts/AuthContext';
@@ -76,6 +77,13 @@ export default function HomeScreen() {
       activeOpacity={0.7}
     >
       <View style={styles.orgCardContent}>
+        {item.organization?.logo_url && (
+          <Image
+            source={{ uri: item.organization.logo_url }}
+            style={styles.orgLogo}
+            resizeMode="contain"
+          />
+        )}
         <View style={styles.orgInfo}>
           <Text style={styles.orgName}>{item.organization?.name || 'Organizacion'}</Text>
           <Text style={styles.orgSubtext}>Miembro desde {new Date(item.joined_date).toLocaleDateString('es-AR')}</Text>
@@ -387,6 +395,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+  },
+  orgLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F3F4F6',
   },
   orgInfo: {
     flex: 1,

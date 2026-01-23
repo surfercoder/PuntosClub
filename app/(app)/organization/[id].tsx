@@ -443,6 +443,8 @@ export default function OrganizationDetailScreen() {
                           horizontal
                           pagingEnabled
                           showsHorizontalScrollIndicator={false}
+                          snapToInterval={Dimensions.get('window').width - 64}
+                          decelerationRate="fast"
                           onScroll={(event) => {
                             const slideIndex = Math.round(
                               event.nativeEvent.contentOffset.x /

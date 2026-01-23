@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name,
             business_name,
             tax_id,
+            logo_url,
             creation_date
           )
         `)
