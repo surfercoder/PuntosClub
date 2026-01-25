@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Image,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -83,6 +84,13 @@ export default function ExploreScreen() {
 
     return (
       <View style={styles.orgCard}>
+        {item.logo_url && (
+          <Image
+            source={{ uri: item.logo_url }}
+            style={styles.orgLogo}
+            resizeMode="contain"
+          />
+        )}
         <View style={styles.orgInfo}>
           <Text style={styles.orgName}>{item.name}</Text>
           {item.business_name && (
@@ -302,6 +310,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  orgLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F3F4F6',
   },
   orgInfo: {
     flex: 1,
