@@ -118,7 +118,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -238,24 +237,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (error) {
-        console.error('fetchBeneficiary error:', error);
         await supabase.auth.signOut();
         setBeneficiary(null);
       } else if (data) {
         const roleName = (data.user_role as any)?.name;
         if (roleName !== 'final_user') {
-          console.warn('User does not have final_user role');
           await supabase.auth.signOut();
           setBeneficiary(null);
         } else {
           setBeneficiary(data);
           setupPushNotifications().catch(error => {
-            console.error('Failed to setup push notifications:', error);
           });
         }
       }
     } catch (error) {
-      console.error('fetchBeneficiary exception:', error);
       setBeneficiary(null);
     } finally {
       setLoading(false);

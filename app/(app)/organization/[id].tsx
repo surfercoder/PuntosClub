@@ -94,15 +94,13 @@ export default function OrganizationDetailScreen() {
       });
 
       if (error) {
-        console.error('Error fetching active offers:', error);
         setActiveOffers([]);
       } else if (data) {
         setActiveOffers(data);
       } else {
         setActiveOffers([]);
       }
-    } catch (err) {
-      console.error('Exception fetching active offers:', err);
+    } catch {
       setActiveOffers([]);
     } finally {
       setOffersLoading(false);
@@ -129,15 +127,13 @@ export default function OrganizationDetailScreen() {
         .order('required_points', { ascending: true });
 
       if (error) {
-        console.error('Error fetching products:', error);
         setProducts([]);
       } else if (data) {
         setProducts(data);
       } else {
         setProducts([]);
       }
-    } catch (err) {
-      console.error('Exception fetching products:', err);
+    } catch {
       setProducts([]);
     } finally {
       setProductsLoading(false);
@@ -187,7 +183,6 @@ export default function OrganizationDetailScreen() {
                   'Error',
                   'No se pudo dejar de seguir la organizacion. Por favor intenta nuevamente.'
                 );
-                console.error('Error unfollowing organization:', error);
               } else {
                 await refreshOrganizations();
                 Alert.alert(
@@ -201,8 +196,7 @@ export default function OrganizationDetailScreen() {
                   ]
                 );
               }
-            } catch (err) {
-              console.error('Exception unfollowing organization:', err);
+            } catch {
               Alert.alert(
                 'Error',
                 'Ocurrio un error inesperado. Por favor intenta nuevamente.'

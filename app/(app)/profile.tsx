@@ -70,7 +70,6 @@ export default function ProfileScreen() {
 
   const fetchAddress = async (addressId: string | number) => {
     try {
-      console.log('Fetching address with ID:', addressId);
       const { data, error } = await supabase
         .from('address')
         .select('*')
@@ -78,12 +77,10 @@ export default function ProfileScreen() {
         .single();
 
       if (error) {
-        console.error('Error fetching address:', error);
         throw error;
       }
 
       if (data) {
-        console.log('Address data fetched:', data);
         setExistingAddress(data);
         setAddressData({
           street: data.street || '',
@@ -97,8 +94,7 @@ export default function ProfileScreen() {
           longitude: data.longitude || undefined,
         });
       }
-    } catch (error) {
-      console.error('Error fetching address:', error);
+    } catch {
     }
   };
 
@@ -149,7 +145,6 @@ export default function ProfileScreen() {
             .single();
 
           if (addressCreateError) {
-            console.error('Address creation error:', addressCreateError);
             throw addressCreateError;
           }
           addressId = newAddress.id;
@@ -168,7 +163,6 @@ export default function ProfileScreen() {
         .eq('id', beneficiary.id);
 
       if (updateError) {
-        console.error('Beneficiary update error:', updateError);
         throw updateError;
       }
 
@@ -195,7 +189,6 @@ export default function ProfileScreen() {
       Alert.alert('Exito', 'Tu perfil ha sido actualizado correctamente.');
       router.back();
     } catch (error) {
-      console.error('Profile save error:', error);
       const errorMessage = error instanceof Error ? error.message : 'No se pudo actualizar el perfil';
       Alert.alert(
         'Error',

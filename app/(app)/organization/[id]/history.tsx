@@ -51,7 +51,6 @@ export default function RedemptionHistoryScreen() {
         .order('redemption_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching redemptions:', error);
         setRedemptions([]);
       } else if (data) {
         const filteredData = data.filter((r: any) => 
@@ -59,10 +58,6 @@ export default function RedemptionHistoryScreen() {
         );
         
         const mappedData = filteredData.map((r: any) => {
-          console.log('Raw redemption_date from DB:', r.redemption_date);
-          console.log('Date object:', new Date(r.redemption_date));
-          console.log('ISO string:', new Date(r.redemption_date).toISOString());
-          
           return {
             id: r.id,
             beneficiary_id: r.beneficiary_id,
@@ -89,8 +84,7 @@ export default function RedemptionHistoryScreen() {
       } else {
         setRedemptions([]);
       }
-    } catch (err) {
-      console.error('Exception fetching redemptions:', err);
+    } catch {
       setRedemptions([]);
     } finally {
       setLoading(false);

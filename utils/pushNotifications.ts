@@ -37,7 +37,6 @@ export async function registerForPushNotificationsAsync() {
     }
     
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
       return null;
     }
 
@@ -45,7 +44,6 @@ export async function registerForPushNotificationsAsync() {
       const projectId = Constants?.expoConfig?.extra?.eas?.projectId;
       
       if (!projectId) {
-        console.log('Project ID not found in app config');
         return null;
       }
 
@@ -54,13 +52,10 @@ export async function registerForPushNotificationsAsync() {
       });
       
       token = pushTokenData.data;
-      console.log('Push token obtained:', token);
     } catch (e) {
-      console.error('Error getting push token:', e);
       return null;
     }
   } else {
-    console.log('Must use physical device for Push Notifications');
     return null;
   }
 
@@ -72,7 +67,6 @@ export async function savePushTokenToBackend(expoPushToken: string) {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {
-      console.log('No active session, cannot save push token');
       return false;
     }
 
@@ -83,14 +77,11 @@ export async function savePushTokenToBackend(expoPushToken: string) {
     const apiUrl = process.env.EXPO_PUBLIC_API_URL;
     
     if (!apiUrl) {
-      console.error('EXPO_PUBLIC_API_URL is not configured. Push tokens cannot be saved.');
-      console.log('Please set EXPO_PUBLIC_API_URL in your .env file to point to your admin app (e.g., http://localhost:3001 or your production URL)');
       return false;
     }
 
     // Validate URL format
     if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-      console.error('Invalid API URL format:', apiUrl);
       return false;
     }
     
@@ -110,14 +101,10 @@ export async function savePushTokenToBackend(expoPushToken: string) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Failed to save push token:', data.error);
       return false;
     }
-
-    console.log('Push token saved successfully:', data);
     return true;
   } catch (error) {
-    console.error('Error saving push token:', error);
     return false;
   }
 }
