@@ -305,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: 'puntosclub://auth/email-confirmed',
+          emailRedirectTo: 'https://puntos-club-admin.vercel.app/auth/email-confirmed',
           data: {
             first_name: userData.first_name,
             last_name: userData.last_name,
